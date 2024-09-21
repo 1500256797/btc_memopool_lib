@@ -1,10 +1,9 @@
+use futures_util::{future, pin_mut, SinkExt, StreamExt};
+use serde_json::json;
 use serde_json::Value;
-use futures_util::{future, pin_mut, StreamExt, SinkExt};
-use serde_json::{json};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 use crate::radio_alert::play_sound;
-
 
 #[derive(Debug)]
 pub struct MempoolBlockInfo {
@@ -20,8 +19,10 @@ pub struct MempoolBlockInfo {
     pub n_tx: u64,
 }
 
-
-pub async fn monitor_mempool_blocks_fee(alert_fee: f64,moniter_block_num: usize) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn monitor_mempool_blocks_fee(
+    alert_fee: f64,
+    moniter_block_num: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("### 开始监控手续费 ###");
     println!("### 当低于{}聪/字节时报警 ###", alert_fee);
     println!("### 监控前{}个区块 ###", moniter_block_num);
@@ -75,10 +76,7 @@ pub async fn monitor_mempool_blocks_fee(alert_fee: f64,moniter_block_num: usize)
     pin_mut!(handle_messages);
     handle_messages.await;
     Ok(())
-
 }
-
-
 
 fn process_mempool_blocks(data: &Value) -> Vec<MempoolBlockInfo> {
     let mut result = vec![];
@@ -91,10 +89,18 @@ fn process_mempool_blocks(data: &Value) -> Vec<MempoolBlockInfo> {
                     block.get("totalFees"),
                     block.get("nTx"),
                 ) {
-                    let min_fee = fee_range.as_array().and_then(|v| v.first()).and_then(|v| v.as_f64()).unwrap_or(0.0);
-                    let max_fee = fee_range.as_array().and_then(|v| v.last()).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                    let min_fee = fee_range
+                        .as_array()
+                        .and_then(|v| v.first())
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(0.0);
+                    let max_fee = fee_range
+                        .as_array()
+                        .and_then(|v| v.last())
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(0.0);
                     let total_fees = total_fees.as_f64().unwrap_or(0.0) / 100_000_000.0;
-                    
+
                     result.push(MempoolBlockInfo {
                         index: i,
                         median_fee: median_fee.as_f64().unwrap_or(0.0),
@@ -108,4 +114,3 @@ fn process_mempool_blocks(data: &Value) -> Vec<MempoolBlockInfo> {
     }
     result
 }
-
